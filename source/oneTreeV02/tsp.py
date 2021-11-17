@@ -5,7 +5,6 @@ from scipy.spatial.distance import pdist
 from scipy.spatial.distance import squareform
 import random as rd
 
-
 # from numba import jit
 from assignment import assigment
 
@@ -60,7 +59,7 @@ def two_opt(route, mat):
         return mat[i, j] + mat[ni, nj] - mat[i, ni] - mat[j, nj]
 
     improved = True
-    changed = True
+    changed = True #iniciar false
     n = len(route)
     while improved:
         improved = False
@@ -77,7 +76,7 @@ def two_opt(route, mat):
                 improved = True
         if improved:
             changed = True
-    return changed
+    return changed #retornar changed e a route
 
 
 def cost(route, mat):
@@ -98,8 +97,8 @@ def heuristica1(mat):
         for j in range(i):
             matb[i, j] = matb[j, i] = np.round(mat[i, j] + pi[i] + pi[j], 3)
     ub, route = NearestNeighbor(matb)
-    two_opt(route, matb)
-    return cost(route, mat), route
+    two_opt(route, matb) 
+    return cost(route, mat), route 
 
 
 def heuristica2(mat, pi):
@@ -109,8 +108,8 @@ def heuristica2(mat, pi):
         for j in range(i):
             matb[i, j] = matb[j, i] = np.round(mat[i, j] + pi[i] + pi[j], 3)
     ub, route = NearestNeighbor(matb)
-    two_opt(route, mat)
-    return cost(route, mat), route
+    two_opt(route, mat) #condição para saber se melhorou diante da rota anterior
+    return cost(route, mat), route #fazer um return na qual retorna a rota gerada na busca local two_opt e o custo desta
 
 
 def heuristica3(mat, pi):  # muito ruim

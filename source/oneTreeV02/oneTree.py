@@ -10,20 +10,25 @@ import tsplib95 as tsplib
 
 from scipy.spatial.distance import pdist
 from scipy.spatial.distance import squareform
-
+from scipy.spatial import Delaunay
+from itertools import combinations
 from scipy.optimize import linear_sum_assignment as ap
 
 from assignment import assigment
 
 import numpy as np
+import pandas as pd
 import random as rd
+import dataFrame as df
 
 import tsp
+
 
 
 class OneTree():
     def __init__(self, graph, LAMBDA=1.1, minL=1e-3, iniL=2, tol=1e-2, trace=False):
         assert isinstance(graph, nx.classes.graph.Graph), "tipo incorreto para graph"
+        self.vetorOnetreeModified = set()
         self.LAMBDA = LAMBDA
         self.minL = minL
         self.iniL = iniL
@@ -128,6 +133,13 @@ class OneTree():
         for i, j in Y:
             self.__branch_mat[i, j] = self.__branch_mat[j, i] = np.inf
 
+            # [(1, 2), (2, 4), (5, 1)]
+            # 1ª => i = 1, j = 2
+            # 2ª => i = 2, j = 4
+            # 3ª => i = 5, j = 1
+            # for i in range(5) => (0, 1, 2, 3, 4)
+            # [[[1,4], [2, 4]], [[1,5], [3, 4]]]
+
         lb, isHam = self.subgradient(self.ub - fixedCost, self.__branch_mat)
 
         if self.trace:
@@ -147,8 +159,8 @@ class OneTree():
             self.plot_one_tree()
 
             return
-
-        if (self.ub - lb+fixedCost)/self.ub > .01:
+        # gap
+        if (self.ub - lb + fixedCost) / self.ub > .01:
             x, route = tsp.heuristica2(self.__branch_mat, self.best_pi)
             if x + fixedCost + self.tol < self.ub:
                 self.ub = x + fixedCost
@@ -173,34 +185,151 @@ class OneTree():
             Y.append(ec[i][1])
             self.__branch(list(X), Y, level + 1)
             Y.remove(ec[i][1])
+        # ec = [[15, (1, 2)], [12, (2, 4)], [10, (6, 8)]]
+        # 1ª
+        # X = []
+        # Y = [(1, 2)]
+
+        # 2ª
+        # X = []
+        # Y = [(1, 2),(2, 4)]
+        
+        # 3ª
+        # X = [(1, 2), (2, 4)]
+        # Y = [(6, 8)]
         return
 
     def plot_one_tree(self):
         plt.clf()
         nx.draw_networkx(self.one_tree, self.one_tree.nodes.data('coord'), with_labels=True, node_size=100,
                          font_size=8)
-        plt.draw()
-        plt.pause(1)
+        plt.show()
+        # plt.draw()
+        # plt.pause(10)
 
     def branchNBound(self, UB):
         self.ub = UB
         self.__branch([], [])
 
+    def oneTreeModified(self, mat, pi, k):
+        otModified_mat = np.copy(mat)
+        for node in self.one_tree.nodes:
+            for j in range(k):
+                self.run_one_tree(otModified_mat, pi)
+                neighbors = [x for x in self.one_tree[node]]
+                edgesNodes = list(zip([node]*len(neighbors), neighbors))
+                nodeMin = edgesNodes[0]
+                if not (nodeMin in self.vetorOnetreeModified or nodeMin[::-1] in self.vetorOnetreeModified):
+                    self.vetorOnetreeModified.add(nodeMin)
+                    otModified_mat[nodeMin] = np.inf
+                    # otModified_mat[nodeMin[::-1]] = np.inf
+            otModified_mat = np.copy(mat)
+        return
+
+
+        # for i in range(n):
+        #     for j in range(i):
+        #         gm1.edges[i, j]['weight'] = gm1.edges[j, i]['weight'] = mat[i, j] + pi[i] + pi[j]
+        # spaningTree = nx.minimum_spanning_tree(self.__Gm1, algorithm="kruskal", weight='weight')
+        # # inserindo o nó removido
+        # one_tree.clear_edges()
+        # one_tree.add_edges_from(spaningTree.edges)
+        # one_tree.add_edge(n, a)
+        # one_tree.add_edge(n, b)
+        return
+
+def delaunayTessellation(graph):
+    coords = graph.nodes.data('coord')
+    c = np.array([coord for i, coord in coords])
+    d = Delaunay(c)
+    edges = set()
+    for triangulo in d.simplices:
+        for aresta in combinations(triangulo, 2):
+            if not((aresta in edges) or (aresta[::-1] in edges)):
+                edges.add(aresta)
+
+    
+    # print(len(d.simplices))
+    # print(len(c[d.simplices]))
+    # print(c[d.simplices[1,1]])
+
+    # plt.triplot(c[:,0], c[:,1], d.simplices)
+    # plt.plot(c[:,0], c[:,1], 'o')
+    # plt.show()
+    return edges
+
+def nearestNeighbor(graph, k):
+    nearestNeighbor_mat = nx.to_numpy_matrix(graph)
+    n = len(nearestNeighbor_mat)
+    v = np.zeros(n)
+    lista = []
+    conjunto = set()
+    for i in range(n):
+        nearestNeighbor_mat[i,i] = np.inf
+        for j in range(n):
+            v[j] = nearestNeighbor_mat[i, j]
+        lista.append(np.argpartition(v, k)[:k])
+
+    for i in range(n):
+        for j in range(k):
+            if not((i, lista[i][j]) in conjunto or (i, lista[i][j])[::-1] in conjunto):
+                conjunto.add((i, lista[i][j]))
+    
+    return conjunto
+
+# def insertPandas(instance, method, parameter, edges):
+#     data = {
+#         'Instance': instance,
+#         'Method': method,
+#         'Parameter': parameter,
+#         'Edges': edges
+#     }
+#     df = pd.DataFrame(data)
+#     return df
+
+class PandasDataFrame():
+    def __init__(self):
+        self.df = pd.DataFrame(
+            columns=['Instance', 'Method', 'Parameter', 'Edges'],
+        )
+
+    def insertPandas(self, instance, method, parameter, edges):
+        data = {
+            'Instance': instance,
+            'Method': method,
+            'Parameter': parameter,
+            'Edges': edges
+        }
+        self.df = self.df.append(data, ignore_index=True)
+        return self.df
 
 if __name__ == "__main__":
-    rd.seed(7)
+    rd.seed(15)
+    df = PandasDataFrame()
     G = tsplib.load('./instances/tsp_data/berlin52.tsp').get_graph(True)
-    # G = tsp.randomGraph(100)
+    # G = tsp.randomGraph(10)
+
+    nearest = nearestNeighbor(G, 5)
+    teste = df.insertPandas('berlin52', 'nearest', 5, [nearest])
+
+    delaunay = delaunayTessellation(G)
+    teste = df.insertPandas('berlin52', 'delaunay', 3, [delaunay])
+    
     ot = OneTree(G, trace=True)
     ub, route = tsp.heuristica2(ot.original_mat,ot.best_pi)
     print('ini ub: ', ub)
     tsp.route_to_graph(route,ot.one_tree)
-    ot.plot_one_tree()
+    ot.oneTreeModified(ot.original_mat, ot.best_pi, 5)
+    teste = df.insertPandas('berlin52', 'oneTreeModified', 5, [ot.vetorOnetreeModified])
+    print(teste)
+    teste.to_csv('teste.csv', index=False)
+
+    # ot.plot_one_tree()
     # ot.trace = True
-    ot.branchNBound(ub)
+    #ot.branchNBound(ub)
 
     print("Fim!")
-    plt.show()
+    # plt.show()
     # ot.LAMBDA = 1.1
     # ot.subgradient(ub)
     # ot.subgradient2(ub)
