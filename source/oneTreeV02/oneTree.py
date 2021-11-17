@@ -304,8 +304,8 @@ class PandasDataFrame():
         return self.df
 
 if __name__ == "__main__":
-    rd.seed(15)
     df = PandasDataFrame()
+    rd.seed(15)
     G = tsplib.load('./instances/tsp_data/berlin52.tsp').get_graph(True)
     # G = tsp.randomGraph(10)
 
