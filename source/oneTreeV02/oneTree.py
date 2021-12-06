@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 import random as rd
 import dataFrame as df
+import os
 
 import tsp
 
@@ -28,7 +29,6 @@ import tsp
 class OneTree():
     def __init__(self, graph, LAMBDA=1.1, minL=1e-3, iniL=2, tol=1e-2, trace=False):
         assert isinstance(graph, nx.classes.graph.Graph), "tipo incorreto para graph"
-        self.vetorOnetreeModified = set()
         self.LAMBDA = LAMBDA
         self.minL = minL
         self.iniL = iniL
@@ -212,41 +212,84 @@ class OneTree():
         self.__branch([], [])
 
     def oneTreeModified(self, mat, pi, k):
-        otModified_mat = np.copy(mat)
-        for node in self.one_tree.nodes:
+        edges = set(self.one_tree.edges)
+        alternativas = set()
+        for edge in edges:
+            matb = np.copy(mat)
+            pivot = edge
             for j in range(k):
-                self.run_one_tree(otModified_mat, pi)
-                neighbors = [x for x in self.one_tree[node]]
-                edgesNodes = list(zip([node]*len(neighbors), neighbors))
-                nodeMin = edgesNodes[0]
-                if not (nodeMin in self.vetorOnetreeModified or nodeMin[::-1] in self.vetorOnetreeModified):
-                    self.vetorOnetreeModified.add(nodeMin)
-                    otModified_mat[nodeMin] = np.inf
-                    # otModified_mat[nodeMin[::-1]] = np.inf
-            otModified_mat = np.copy(mat)
-        return
+                matb[pivot] = matb[pivot[::-1]] = np.inf
+                self.run_one_tree(matb, pi)
+                novos = set(self.one_tree.edges) - edges
+                for n in novos:
+                    alternativas.add(n)
+                pivot = list(novos)[0]
+
+        # G.add_edges_from(edges.union(alternativas))
+        # nx.draw(G, with_labels=True, node_size=500, node_color='lightgreen')
+        # plt.show()    
+        return edges.union(alternativas)
+
+    def delaunayOneTree(self, graph, mat, pi):
+        edges = delaunayTessellation(graph)
+        matb = np.copy(mat)
+        n = len(mat)
+
+        for i in range(n):
+            for j in range(n):
+                if not ((i,j) in edges or (j,i) in edges):
+                    matb[i, j] = np.inf
+
+        self.run_one_tree(matb, pi)
+        return set(self.one_tree.edges)
+
+def delaunayNearestNeighbor(graph, mat):
+    edges = delaunayTessellation(graph)
+    
+    G = nx.Graph()
+    G.add_edges_from(edges)
+    nx.draw(G, with_labels=True, node_size=500, node_color='lightgreen')
+    plt.show()
+
+    matb = np.copy(mat)
+    n = len(matb)
+    conjunto = set()
 
 
-        # for i in range(n):
-        #     for j in range(i):
-        #         gm1.edges[i, j]['weight'] = gm1.edges[j, i]['weight'] = mat[i, j] + pi[i] + pi[j]
-        # spaningTree = nx.minimum_spanning_tree(self.__Gm1, algorithm="kruskal", weight='weight')
-        # # inserindo o nó removido
-        # one_tree.clear_edges()
-        # one_tree.add_edges_from(spaningTree.edges)
-        # one_tree.add_edge(n, a)
-        # one_tree.add_edge(n, b)
-        return
+    for i in range(n):
+        for j in range(n):
+            if not ((i,j) in edges or (j,i) in edges):
+                matb[i, j] = np.inf
+    
 
-def delaunayTessellation(graph):
-    coords = graph.nodes.data('coord')
-    c = np.array([coord for i, coord in coords])
-    d = Delaunay(c)
-    edges = set()
-    for triangulo in d.simplices:
-        for aresta in combinations(triangulo, 2):
-            if not((aresta in edges) or (aresta[::-1] in edges)):
-                edges.add(aresta)
+    used = np.zeros(n, dtype=bool)
+    used[0] = True
+    last = 0
+    route = [0]
+    for i in range(n):
+        minarg = -1
+        min = np.inf
+        for j in range(n):
+            if (not used[j] and matb[last, j] < min):
+                min = matb[last, j]
+                minarg = j
+        if minarg >= 0:
+            last = minarg
+            route.append(last)
+            used[last] = True
+    
+    G.clear_edges()
+    for i in range(0, len(route)):
+        if route[i - 1] < route[i]:
+            G.add_edge(route[i - 1], route[i])
+        else:
+            G.add_edge(route[i], route[i - 1])
+
+    nx.draw(G, with_labels=True, node_size=500, node_color='lightgreen')
+    plt.show()
+    
+    return set(G.edges)
+
 
     
     # print(len(d.simplices))
@@ -256,73 +299,150 @@ def delaunayTessellation(graph):
     # plt.triplot(c[:,0], c[:,1], d.simplices)
     # plt.plot(c[:,0], c[:,1], 'o')
     # plt.show()
-    return edges
-
-def nearestNeighbor(graph, k):
-    nearestNeighbor_mat = nx.to_numpy_matrix(graph)
-    n = len(nearestNeighbor_mat)
-    v = np.zeros(n)
-    lista = []
-    conjunto = set()
-    for i in range(n):
-        nearestNeighbor_mat[i,i] = np.inf
-        for j in range(n):
-            v[j] = nearestNeighbor_mat[i, j]
-        lista.append(np.argpartition(v, k)[:k])
-
-    for i in range(n):
-        for j in range(k):
-            if not((i, lista[i][j]) in conjunto or (i, lista[i][j])[::-1] in conjunto):
-                conjunto.add((i, lista[i][j]))
-    
     return conjunto
 
-# def insertPandas(instance, method, parameter, edges):
-#     data = {
-#         'Instance': instance,
-#         'Method': method,
-#         'Parameter': parameter,
-#         'Edges': edges
-#     }
-#     df = pd.DataFrame(data)
-#     return df
+def delaunayTessellation(graph):
+    coords = graph.nodes.data('coord')
+    c = np.array([coord for i, coord in coords])
+    d = Delaunay(c)
+    edges = set()
+    for triangulo in d.simplices:
+        for aresta in combinations(triangulo, 2):
+            edges.add(tuple(sorted(aresta)))
+         
+    # print(len(d.simplices))
+    # print(len(c[d.simplices]))
+    # print(c[d.simplices[1,1]])
 
-class PandasDataFrame():
-    def __init__(self):
-        self.df = pd.DataFrame(
-            columns=['Instance', 'Method', 'Parameter', 'Edges'],
-        )
+    # plt.triplot(c[:,0], c[:,1], d.simplices)
+    # plt.plot(c[:,0], c[:,1], 'o')
+    # plt.show()
+    return edges
 
-    def insertPandas(self, instance, method, parameter, edges):
-        data = {
-            'Instance': instance,
-            'Method': method,
-            'Parameter': parameter,
-            'Edges': edges
-        }
-        self.df = self.df.append(data, ignore_index=True)
-        return self.df
+def nearestNeighbor(graph, mat, k):
+    matb = np.copy(mat)
+    # assert isinstance(mat, np.matrix), "use np.matrix"
+    n = len(matb)
+    last = 0
+    v = np.zeros(n)
+    G = nx.Graph()
+    route = [0]
+
+    for x in range(k):
+        used = np.zeros(n, dtype=bool)
+        used[0] = True
+        route.clear()
+
+        for i in range(n):
+            minarg = -1
+            min = np.inf        
+            for j in range(n):
+                if (not used[j] and matb[last, j] < min):
+                    min = matb[last, j]
+                    minarg = j
+            if minarg >= 0:
+                last = minarg
+                route.append(last)
+                used[last] = True
+
+        for i in range(0, len(route)):
+            if route[i - 1] < route[i]:
+                G.add_edge(route[i - 1], route[i])
+                matb[route[i - 1], route[i]] = np.inf
+            else:
+                G.add_edge(route[i], route[i - 1])
+                matb[route[i], route[i - 1]] = np.inf
+    
+    nx.draw(G, with_labels=True, node_size=500, node_color='lightgreen')
+    plt.show()
+
+    
+    return set(G.edges)
+    
+    
+    
+    
+    # matb = np.copy(mat)
+    # n = len(matb)
+    # v = np.zeros(n)
+    # conjunto = set()
+    # flagNode = [False] * n
+    # pilha = [0]
+
+    # while(not(np.all(flagNode))):
+    #     i = pilha.pop()
+    #     for j in range(n):
+    #         v[j] = matb[i, j]
+    #     for e in np.argpartition(v, k)[:k]:
+    #         matb[i,e] = matb[e,i] = np.inf
+    #         pilha.append(e)
+    #         if not((i, e) in conjunto or (e, i) in conjunto):
+    #             conjunto.add((i,e))
+    #             flagNode[i] = flagNode[e] = True
+
+
+    # for i in range(n):
+    #     nearestNeighbor_mat[i,i] = np.inf
+    #     for j in range(n):
+    #         v[j] = nearestNeighbor_mat[i, j]
+    #     lista.append(np.argpartition(v, k)[:k])
+    # for i in range(n):
+    #     for j in range(k):
+    #         if not((i, lista[i][j]) in conjunto or (i, lista[i][j])[::-1] in conjunto):
+    #             conjunto.add((i, lista[i][j]))
+    
+
 
 if __name__ == "__main__":
-    df = PandasDataFrame()
     rd.seed(15)
-    G = tsplib.load('./instances/tsp_data/berlin52.tsp').get_graph(True)
+    path = '/home/naz/Projetos/oneTree/instances/'
     # G = tsp.randomGraph(10)
+    dataFrameOS = df.readOptimalSolution()
+    dirlist = os.listdir(path+'tsp_data')
+    dataFrame = df.createDataFrame()
+    k = 5
+    for instance in dirlist:
+        G = tsplib.load(path+'tsp_data/'+instance).get_graph(True)
+        ot = OneTree(G, trace=True)
+        delaunay = delaunayTessellation(G)
+        dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'Delaunay-Tessellation', 3, delaunay)
+        
+        delaunayNearest = delaunayNearestNeighbor(G, ot.original_mat)
+        dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'Delaunay-NearestNeighbor', 3, delaunayNearest)
+        
+        for i in range(k):
+            nearest = nearestNeighbor(G, ot.original_mat, (i+1))
+            dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'Nearest-Neighbor', (i+1), nearest)    
+            
+            ot = OneTree(G, trace=True)
+            ub, route = tsp.heuristica2(ot.original_mat,ot.best_pi)
+            print('ini ub: ', ub)
+            tsp.route_to_graph(route,ot.one_tree)
+            alternateEdges = ot.oneTreeModified(ot.original_mat, ot.best_pi, i)
+            dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'oneTree-Modified', (i+1), alternateEdges)
 
-    nearest = nearestNeighbor(G, 5)
-    teste = df.insertPandas('berlin52', 'nearest', 5, [nearest])
+            delaunayOnetree = OneTree(G, trace=True)
+            ub, route = tsp.heuristica2(delaunayOnetree.original_mat, delaunayOnetree.best_pi)
+            tsp.route_to_graph(route, delaunayOnetree.one_tree)
+            delaunayOnetreeEdges = delaunayOnetree.delaunayOneTree(G, delaunayOnetree.original_mat, delaunayOnetree.best_pi)
+            dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'Delanay-OneTree', 1, delaunayOnetreeEdges)
 
-    delaunay = delaunayTessellation(G)
-    teste = df.insertPandas('berlin52', 'delaunay', 3, [delaunay])
+            print(dataFrame)
+            dataFrame.to_csv('dataFrameInstances.csv', index=False)
+            teste = nx.Graph()
+            teste.add_edges_from(delaunayOnetreeEdges)
+            nx.draw(teste, with_labels=True, node_size=500, node_color='lightgreen')
+            plt.show()
+
     
-    ot = OneTree(G, trace=True)
-    ub, route = tsp.heuristica2(ot.original_mat,ot.best_pi)
-    print('ini ub: ', ub)
-    tsp.route_to_graph(route,ot.one_tree)
-    ot.oneTreeModified(ot.original_mat, ot.best_pi, 5)
-    teste = df.insertPandas('berlin52', 'oneTreeModified', 5, [ot.vetorOnetreeModified])
-    print(teste)
-    teste.to_csv('teste.csv', index=False)
+
+    #FEITO - porcentagem de arestas dos resultados que estão na solução ótima
+    #FEITO - percentual da solução ótima que está no resultado
+    #FEITO - fazer o k variar [1,2,3,4,5]
+    #criar outro método, combinação de Dalaunay com o onetree modificado, Delaunay com vizinhos próximos
+    #pegar 20 instancias
+    #FEITO - colocar a porcentagem na tabela - DF
+
 
     # ot.plot_one_tree()
     # ot.trace = True
