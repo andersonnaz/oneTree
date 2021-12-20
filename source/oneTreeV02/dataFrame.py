@@ -10,6 +10,8 @@ import six
 import sys
 import os
 
+from oneTreeV02.oneTree import INSTANCES_PATH
+
 sys.modules['sklearn.externals.six'] = six
 
 def createDataFrame():
@@ -50,14 +52,13 @@ def insertDataFrameOS(dataFrame, instance, edges):
     return dataFrame
 
 def readOptimalSolution():
-    #Tour ótimo dos problemas:
-    path = '/home/naz/Projetos/oneTree/instances/'
-    dirlist = os.listdir(path+'tsp_opt')
+    # Tour ótimo dos problemas:
+    dirlist = os.listdir(os.path.join(INSTANCES_PATH, 'tsp_opt'))
     dataFrameOS = createDataFrameOS()
     for instance in dirlist:
         lista = []
         edges = set()
-        tour = tsplib.load(path+'tsp_opt/'+instance)
+        tour = tsplib.load(os.path.join(INSTANCES_PATH, 'tsp_opt', instance))
         lista = list(np.array(tour.tours[0]) - 1)
         edges = set([(lista[-1], lista[0])])
         for i in range(len(lista) - 1):
