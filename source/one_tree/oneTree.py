@@ -26,7 +26,6 @@ import tsp
 
 INSTANCES_PATH = '../../instances'
 
-
 class OneTree():
     def __init__(self, graph, LAMBDA=1.1, minL=1e-3, iniL=2, tol=1e-2, trace=False):
         assert isinstance(graph, nx.classes.graph.Graph), "tipo incorreto para graph"
