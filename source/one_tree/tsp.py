@@ -1,5 +1,4 @@
 import numpy as np
-# Biblioteca para trabalhar com grafos
 import networkx as nx
 from scipy.spatial.distance import pdist
 from scipy.spatial.distance import squareform
@@ -104,19 +103,6 @@ def heuristica2(mat, pi):
     two_opt(route, mat) #condição para saber se melhorou diante da rota anterior
     return cost(route, mat), route #fazer um return na qual retorna a rota gerada na busca local two_opt e o custo desta
 
-
-# def heuristica3(mat, pi):  # muito ruim
-#     dist = []
-#     for i in range(len(mat)):
-#         for j in range(i):
-#             dist.append([i, j, mat[i, j] + pi[i] + pi[j]])
-#             dist.append([j, i, mat[i, j] + pi[i] + pi[j]])
-#
-#     fitness_dists = mlrose.TravellingSales(distances=dist)
-#     problem_fit = mlrose.TSPOpt(length=len(mat), fitness_fn=fitness_dists, maximize=False)
-#     best_state, best_fitness = mlrose.genetic_alg(problem_fit, max_attempts=100, random_state=7)
-#     route = np.roll(best_state, -np.argmin(best_state))
-#     return cost(route, mat), route
 
 
 def route_to_graph(route, graph):
