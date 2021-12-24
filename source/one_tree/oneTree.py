@@ -19,12 +19,11 @@ from assignment import assigment
 import numpy as np
 import pandas as pd
 import random as rd
-import dataFrame as df
+from tables import read_opt_dir, INSTANCES_PATH, delaunay, nearest_neigh
 import os
 
 import tsp
 
-INSTANCES_PATH = '../../instances'
 
 class OneTree():
     def __init__(self, graph, LAMBDA=1.1, minL=1e-3, iniL=2, tol=1e-2, trace=False):
@@ -299,25 +298,6 @@ def delaunayNearestNeighbor(graph, mat):
     return conjunto
 
 
-def delaunayTessellation(graph):
-    coords = graph.nodes.data('coord')
-    c = np.array([coord for i, coord in coords])
-    d = Delaunay(c)
-    edges = set()
-    for triangulo in d.simplices:
-        for aresta in combinations(triangulo, 2):
-            edges.add(tuple(sorted(aresta)))
-
-    # print(len(d.simplices))
-    # print(len(c[d.simplices]))
-    # print(c[d.simplices[1,1]])
-
-    # plt.triplot(c[:,0], c[:,1], d.simplices)
-    # plt.plot(c[:,0], c[:,1], 'o')
-    # plt.show()
-    return edges
-
-
 def nearestNeighbor(graph, mat, k):
     matb = np.copy(mat)
     # assert isinstance(mat, np.matrix), "use np.matrix"
@@ -387,62 +367,65 @@ def nearestNeighbor(graph, mat, k):
 
 
 if __name__ == "__main__":
-    rd.seed(15)
-
-    # G = tsp.randomGraph(10)
-    dataFrameOS = df.readOptimalSolution()
-    dirlist = os.listdir(os.path.join(INSTANCES_PATH, 'tsp_data'))
-    dataFrame = df.createDataFrame()
-    k = 5
-    for instance in dirlist:
-        G = tsplib.load(os.path.join(INSTANCES_PATH, 'tsp_data', instance)).get_graph(True)
-        ot = OneTree(G, trace=True)
-        delaunay = delaunayTessellation(G)
-        dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'Delaunay-Tessellation', 3, delaunay)
-
-        delaunayNearest = delaunayNearestNeighbor(G, ot.original_mat)
-        dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'Delaunay-NearestNeighbor', 3, delaunayNearest)
-
-        for i in range(k):
-            nearest = nearestNeighbor(G, ot.original_mat, (i + 1))
-            dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'Nearest-Neighbor', (i + 1), nearest)
-
-            ot = OneTree(G, trace=True)
-            ub, route = tsp.heuristica2(ot.original_mat, ot.best_pi)
-            print('ini ub: ', ub)
-            tsp.route_to_graph(route, ot.one_tree)
-            alternateEdges = ot.oneTreeModified(ot.original_mat, ot.best_pi, i)
-            dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'oneTree-Modified', (i + 1),
-                                           alternateEdges)
-
-            delaunayOnetree = OneTree(G, trace=True)
-            ub, route = tsp.heuristica2(delaunayOnetree.original_mat, delaunayOnetree.best_pi)
-            tsp.route_to_graph(route, delaunayOnetree.one_tree)
-            delaunayOnetreeEdges = delaunayOnetree.delaunayOneTree(G, delaunayOnetree.original_mat,
-                                                                   delaunayOnetree.best_pi)
-            dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'Delanay-OneTree', 1, delaunayOnetreeEdges)
-
-            print(dataFrame)
-            dataFrame.to_csv('dataFrameInstances.csv', index=False)
-            teste = nx.Graph()
-            teste.add_edges_from(delaunayOnetreeEdges)
-            nx.draw(teste, with_labels=True, node_size=500, node_color='lightgreen')
-            plt.show()
-
-    # FEITO - porcentagem de arestas dos resultados que estão na solução ótima
-    # FEITO - percentual da solução ótima que está no resultado
-    # FEITO - fazer o k variar [1,2,3,4,5]
-    # criar outro método, combinação de Dalaunay com o onetree modificado, Delaunay com vizinhos próximos
-    # pegar 20 instancias
-    # FEITO - colocar a porcentagem na tabela - DF
-
-    # ot.plot_one_tree()
-    # ot.trace = True
-    # ot.branchNBound(ub)
-
-    print("Fim!")
-    # plt.show()
-    # ot.LAMBDA = 1.1
-    # ot.subgradient(ub)
-    # ot.subgradient2(ub)
-    # ot.subgradient2(ub)
+    opt = read_opt_dir(os.path.join(INSTANCES_PATH, 'tsp_opt'))
+    delaunay = delaunay(os.path.join(INSTANCES_PATH, 'tsp_data'))
+    for k in range(3, 6):
+        nearest = nearest_neigh(os.path.join(INSTANCES_PATH, 'tsp_data'), k)
+    # rd.seed(15)
+    # # G = tsp.randomGraph(10)
+    # dataFrameOS = df.read_optimal_sol()
+    # dirlist = os.listdir(os.path.join(INSTANCES_PATH, 'tsp_data'))
+    # dataFrame = df.create_DF()
+    # k = 5
+    # for instance in dirlist:
+    #     G = tsplib.load(os.path.join(INSTANCES_PATH, 'tsp_data', instance)).get_graph(True)
+    #     ot = OneTree(G, trace=True)
+    #     delaunay = delaunayTessellation(G)
+    #     dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'Delaunay-Tessellation', 3, delaunay)
+    #
+    #     delaunayNearest = delaunayNearestNeighbor(G, ot.original_mat)
+    #     dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'Delaunay-NearestNeighbor', 3, delaunayNearest)
+    #
+    #     for i in range(k):
+    #         nearest = nearestNeighbor(G, ot.original_mat, (i + 1))
+    #         dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'Nearest-Neighbor', (i + 1), nearest)
+    #
+    #         ot = OneTree(G, trace=True)
+    #         ub, route = tsp.heuristica2(ot.original_mat, ot.best_pi)
+    #         print('ini ub: ', ub)
+    #         tsp.route_to_graph(route, ot.one_tree)
+    #         alternateEdges = ot.oneTreeModified(ot.original_mat, ot.best_pi, i)
+    #         dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'oneTree-Modified', (i + 1),
+    #                                        alternateEdges)
+    #
+    #         delaunayOnetree = OneTree(G, trace=True)
+    #         ub, route = tsp.heuristica2(delaunayOnetree.original_mat, delaunayOnetree.best_pi)
+    #         tsp.route_to_graph(route, delaunayOnetree.one_tree)
+    #         delaunayOnetreeEdges = delaunayOnetree.delaunayOneTree(G, delaunayOnetree.original_mat,
+    #                                                                delaunayOnetree.best_pi)
+    #         dataFrame = df.insertDataFrame(dataFrameOS, dataFrame, instance, 'Delanay-OneTree', 1, delaunayOnetreeEdges)
+    #
+    #         print(dataFrame)
+    #         dataFrame.to_csv('dataFrameInstances.csv', index=False)
+    #         teste = nx.Graph()
+    #         teste.add_edges_from(delaunayOnetreeEdges)
+    #         nx.draw(teste, with_labels=True, node_size=500, node_color='lightgreen')
+    #         plt.show()
+    #
+    # # FEITO - porcentagem de arestas dos resultados que estão na solução ótima
+    # # FEITO - percentual da solução ótima que está no resultado
+    # # FEITO - fazer o k variar [1,2,3,4,5]
+    # # criar outro método, combinação de Dalaunay com o onetree modificado, Delaunay com vizinhos próximos
+    # # pegar 20 instancias
+    # # FEITO - colocar a porcentagem na tabela - DF
+    #
+    # # ot.plot_one_tree()
+    # # ot.trace = True
+    # # ot.branchNBound(ub)
+    #
+    # print("Fim!")
+    # # plt.show()
+    # # ot.LAMBDA = 1.1
+    # # ot.subgradient(ub)
+    # # ot.subgradient2(ub)
+    # # ot.subgradient2(ub)
