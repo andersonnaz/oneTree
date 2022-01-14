@@ -19,7 +19,7 @@ from assignment import assigment
 import numpy as np
 import pandas as pd
 import random as rd
-from tables import read_opt_dir, INSTANCES_PATH, delaunay, nearest_neigh
+from tables import read_opt_dir, INSTANCES_PATH, delaunay, nearest_neigh, read_graphs, plot
 import os
 
 import tsp
@@ -368,9 +368,17 @@ def nearestNeighbor(graph, mat, k):
 
 if __name__ == "__main__":
     opt = read_opt_dir(os.path.join(INSTANCES_PATH, 'tsp_opt'))
-    delaunay = delaunay(os.path.join(INSTANCES_PATH, 'tsp_data'))
+    instance_path = os.path.join(INSTANCES_PATH, 'tsp_data')
+    graph = read_graphs(instance_path)
+    delaunay = delaunay(instance_path)
     for k in range(3, 6):
-        nearest = nearest_neigh(os.path.join(INSTANCES_PATH, 'tsp_data'), k)
+        nearest = nearest_neigh(instance_path, k)
+
+    #só pra teste
+    plot(graph[opt[0]['instance']],edges=opt[0]['e  dges'])
+    plot(graph[delaunay[0]['instance']], edges=delaunay[0]['edges'])
+    plot(graph[nearest[0]['instance']], edges=nearest[0]['edges'])
+    #
     # rd.seed(15)
     # # G = tsp.randomGraph(10)
     # dataFrameOS = df.read_optimal_sol()

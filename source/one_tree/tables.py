@@ -4,6 +4,8 @@ import pandas as pd
 import tsplib95 as tsplib
 import numpy as np
 import os
+
+from matplotlib import pyplot as plt
 from scipy.spatial import Delaunay
 
 INSTANCES_PATH = '../../instances'
@@ -68,6 +70,20 @@ def _delaunayTessellation(G):
     return edges
 
 
+def read_graphs(path_dir: str):
+    """
+    Ler todos  arquivo de instancias da tsplib no diretório
+    :param path_dir: path para o diretório contendo arquivos de isntâncias da tsplib
+    :return: dicionários {<nome da instância>: <nx graph>}
+    """
+    g = {}
+    file_list = os.listdir(path_dir)
+    for file_name in file_list:
+        g[os.path.basename(file_name).split('.')[0]] = tsplib.load(os.path.join(path_dir, file_name)).get_graph(
+            normalize=True)
+    return g
+
+
 def delaunay(path_dir: str):
     """
     Ler todos  arquivo de instancias da tsplib no diretório
@@ -122,6 +138,39 @@ def nearest_neigh(path_dir: str, k: int):
              'edges': edges}
         lista.append(d)
     return lista
+
+
+def plot(graph, routes=None, edges=None, clear_edges=True, stop=True, sleep_time=0.01):
+    """
+    Exibe a instância graficamente
+
+    :param routes: Solução (lista de listas)
+    :param edges: lista de arcos (lista de tuplas (i,j) )
+    :param clear_edges: limpar o último plot ou não
+    :param stop: Parar a execução ou não
+    :param sleep_time: Se stop for Falso, tempo de espera em segundos antes de prosseguir
+    """
+    if clear_edges:
+        graph.clear_edges()
+    if routes is not None:
+        for r in routes:
+            if len(r) > 1:
+                for i in range(len(r) - 1):
+                    graph.add_edge(r[i], r[i + 1])
+                graph.add_edge(r[-1], r[0])
+    if edges is not None:
+        for i, j in edges:
+            graph.add_edge(i, j)
+    plt.clf()
+    color = ['#74BDCB' for i in range(len(graph))]
+    color[0] = '#FFA384'
+    nx.draw_networkx(graph, graph.nodes.data('coord'), with_labels=True, node_size=120, font_size=8, node_color=color)
+    if stop:
+        plt.show()
+    else:
+        plt.draw()
+        plt.pause(sleep_time)
+    pass
 
 # def insertDataFrame(dataFrameOS, dataFrame, instance, method, parameter, edges):
 #     instance = instance[:-4]
