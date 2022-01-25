@@ -8,7 +8,18 @@ import os
 from matplotlib import pyplot as plt
 from scipy.spatial import Delaunay
 
+from one_tree import tsp
+from one_tree.oneTree import OneTree
+
 INSTANCES_PATH = '../../instances'
+
+
+def progress(done, total, text: str, end=''):
+    x = int(round(40.0 * done / total))
+    print(f"\r{text}: |{'█' * x}{'-' * (40 - x)}|", end=end)
+    if done == total:
+        print()
+    pass
 
 
 def _create_DF():
@@ -44,13 +55,15 @@ def read_opt_dir(path_dir: str):
         """
     lista = []
     file_list = os.listdir(path_dir)
-    for file_name in file_list:
+    for i, file_name in enumerate(file_list):
         edges = _read_opt_sol(os.path.join(path_dir, file_name))
         d = {'instance': os.path.basename(file_name).split('.')[0],
              'method': 'opt',
              'parameter': None,
              'edges': edges}
         lista.append(d)
+        progress(i + 1, len(file_list), 'Lendo soluções', file_name)
+    print()
     return lista
 
 
@@ -78,28 +91,30 @@ def read_graphs(path_dir: str):
     """
     g = {}
     file_list = os.listdir(path_dir)
-    for file_name in file_list:
+    for i, file_name in enumerate(file_list):
         g[os.path.basename(file_name).split('.')[0]] = tsplib.load(os.path.join(path_dir, file_name)).get_graph(
             normalize=True)
+        progress(i + 1, len(file_list), 'Lendo instâncias', file_name)
+        # break
+    print()
     return g
 
 
 def delaunay(path_dir: str):
     """
     Ler todos  arquivo de instancias da tsplib no diretório
-    :param path_dir: path para o diretório contendo arquivos de isntâncias da tsplib
+    :param graphs: dicionário {<nome>: <graphNX>}
     :return: lista de dicionários {'instance':<nome da instância>, 'method':'delaunay', 'parameter':None, 'edges':[(i,j)...]}
     """
     lista = []
-    file_list = os.listdir(path_dir)
-    for file_name in file_list:
-        G = tsplib.load(os.path.join(path_dir, file_name)).get_graph(normalize=True)
+    for i, (name, G) in enumerate(graphs.items()):
         edges = _delaunayTessellation(G)
-        d = {'instance': os.path.basename(file_name).split('.')[0],
+        d = {'instance': os.path.basename(name).split('.')[0],
              'method': 'delaunay',
              'parameter': None,
              'edges': edges}
         lista.append(d)
+        progress(i + 1, len(graphs), 'delaunay', name)
     return lista
 
 
@@ -118,25 +133,46 @@ def _nearest(G, k: int):
             if i != p[j]:
                 e = (i, p[j]) if i < p[j] else (p[j], i)
                 edges.add(e)
+
     return edges
 
 
-def nearest_neigh(path_dir: str, k: int):
+def nearest_neigh(graphs: dict, k: int):
     """
     Ler todos  arquivo de instancias da tsplib no diretório
-    :param path_dir: path para o diretório contendo arquivos de isntâncias da tsplib
+    :param graphs: dicionário {<nome>: <graphNX>}
     :return: lista de dicionários {'instance':<nome da instância>, 'method':'nearest', 'parameter':k, 'edges':[(i,j)...]}
     """
     lista = []
-    file_list = os.listdir(path_dir)
-    for file_name in file_list:
-        G = tsplib.load(os.path.join(path_dir, file_name)).get_graph(normalize=True)
+    for i, (name, G) in enumerate(graphs.items()):
         edges = _nearest(G, k)
-        d = {'instance': os.path.basename(file_name).split('.')[0],
+        d = {'instance': os.path.basename(name).split('.')[0],
              'method': 'nearest',
              'parameter': k,
              'edges': edges}
         lista.append(d)
+        progress(i+1, len(graphs), f'nearest_neigh k= {k}', name)
+    return lista
+
+
+def one_tree(graphs: dict, k: int):
+    """
+    Ler todos  arquivo de instancias da tsplib no diretório
+    :param graphs: path para o diretório contendo arquivos de isntâncias da tsplib
+    :return: lista de dicionários {'instance':<nome da instância>, 'method':'one_tree', 'parameter':k, 'edges':[(i,j)...]}
+    """
+    lista = []
+
+    for i, (name, G) in enumerate(graphs.items()):
+        progress(i, len(graphs), f'one_tree k= {k}', name)
+        ot = OneTree(G, trace=False)
+        edges = ot.oneTree_alternative(k)
+        d = {'instance': name,
+             'method': 'on_tree',
+             'parameter': k,
+             'edges': edges}
+        lista.append(d)
+    print()
     return lista
 
 
@@ -171,6 +207,7 @@ def plot(graph, routes=None, edges=None, clear_edges=True, stop=True, sleep_time
         plt.draw()
         plt.pause(sleep_time)
     pass
+
 
 # def insertDataFrame(dataFrameOS, dataFrame, instance, method, parameter, edges):
 #     instance = instance[:-4]
@@ -225,3 +262,20 @@ def plot(graph, routes=None, edges=None, clear_edges=True, stop=True, sleep_time
 # def percentage(numerador, denominador):
 #     intersect = set(numerador) & set(denominador)
 #     return ((len(intersect) * 100) / len(denominador))
+
+if __name__ == "__main__":
+
+    opt = read_opt_dir(os.path.join(INSTANCES_PATH, 'tsp_opt'))
+    instance_path = os.path.join(INSTANCES_PATH, 'tsp_data')
+    graphs = read_graphs(instance_path)
+    delaunay = delaunay(graphs)
+    for k in range(3, 6):
+        nearest = nearest_neigh(graphs, k)
+    for k in range(0, 1):
+        one_t = one_tree(graphs, k)
+
+    # só pra teste
+    # plot(graph[opt[0]['instance']],edges=opt[0]['edges'])
+    # plot(graph[delaunay[0]['instance']], edges=delaunay[0]['edges'])
+    # plot(graph[nearest[0]['instance']], edges=nearest[0]['edges'])
+    plot(graphs[one_t[0]['instance']], edges=one_t[0]['edges'])
