@@ -151,7 +151,7 @@ def nearest_neigh(graphs: dict, k: int):
              'parameter': k,
              'edges': edges}
         lista.append(d)
-        progress(i+1, len(graphs), f'nearest_neigh k= {k}', name)
+        progress(i + 1, len(graphs), f'nearest_neigh k= {k}', name)
     return lista
 
 
@@ -266,13 +266,25 @@ def plot(graph, routes=None, edges=None, clear_edges=True, stop=True, sleep_time
 if __name__ == "__main__":
 
     opt = read_opt_dir(os.path.join(INSTANCES_PATH, 'tsp_opt'))
+    df = pd.DataFrame(opt)
+    df.to_csv('edges_table.csv', index=None)
+
     instance_path = os.path.join(INSTANCES_PATH, 'tsp_data')
     graphs = read_graphs(instance_path)
+
     delaunay = delaunay(graphs)
+    df = df.append(delaunay)
+    df.to_csv('edges_table.csv', index=None)
+
     for k in range(3, 6):
         nearest = nearest_neigh(graphs, k)
-    for k in range(0, 1):
+        df = df.append(nearest)
+        df.to_csv('edges_table.csv', index=None)
+
+    for k in range(0, 2):
         one_t = one_tree(graphs, k)
+        df = df.append(one_t)
+        df.to_csv('edges_table.csv', index=None)
 
     # só pra teste
     # plot(graph[opt[0]['instance']],edges=opt[0]['edges'])
