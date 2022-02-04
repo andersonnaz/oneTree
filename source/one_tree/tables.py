@@ -8,7 +8,6 @@ import os
 from matplotlib import pyplot as plt
 from scipy.spatial import Delaunay
 
-from one_tree import tsp
 from one_tree.oneTree import OneTree
 
 INSTANCES_PATH = '../../instances'
@@ -286,7 +285,7 @@ if __name__ == "__main__":
         one_t = one_tree(graphs, k)
         df = df.append(one_t)
         df.to_csv('edges_table.csv', index=None)
-        break
+        # break
 
     # só pra teste
     # plot(graph[opt[0]['instance']],edges=opt[0]['edges'])
