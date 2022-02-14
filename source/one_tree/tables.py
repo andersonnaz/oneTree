@@ -267,21 +267,21 @@ if __name__ == "__main__":
 
     opt = read_opt_dir(os.path.join(INSTANCES_PATH, 'tsp_opt'))
     df = pd.DataFrame(opt)
-    df.to_csv('edges_table.csv', index=None)
+    # df.to_csv('edges_table.csv', index=None)
     #
     instance_path = os.path.join(INSTANCES_PATH, 'tsp_data')
     graphs = read_graphs(instance_path)
 
-    delaunay = delaunay(graphs)
-    df = df.append(delaunay)
-    df.to_csv('edges_table.csv', index=None)
+    # delaunay = delaunay(graphs)
+    # df = df.append(delaunay)
+    # df.to_csv('edges_table.csv', index=None)
 
-    for k in range(3, 6):
-        nearest = nearest_neigh(graphs, k)
-        df = df.append(nearest)
-        df.to_csv('edges_table.csv', index=None)
+    # for k in range(3, 6):
+    #     nearest = nearest_neigh(graphs, k)
+    #     df = df.append(nearest)
+    #     df.to_csv('edges_table.csv', index=None)
 
-    for k in range(0, 2):
+    for k in range(2, 4):
         one_t = one_tree(graphs, k)
         df = df.append(one_t)
         df.to_csv('edges_table.csv', index=None)
