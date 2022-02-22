@@ -119,11 +119,13 @@ class OneTree():
         self.oneTree()
         return maxW, is_ham
 
-    def subgradient(self, ub):
-        dcost, x, v, u = assigment(self.matb)
-        for i in range(self.N):
-            self.pi[i] = -0.5 * (v[i] + u[i])
-
+    def subgradient(self, ub, ini_pi=None):
+        if ini_pi is None:
+            dcost, x, v, u = assigment(self.matb)
+            for i in range(self.N):
+                self.pi[i] = -0.5 * (v[i] + u[i])
+        else:
+            np.copyto(self.pi, ini_pi)
         is_ham = False
         np.copyto(self.bestPi, self.pi)
         L = self.iniL
@@ -148,6 +150,7 @@ class OneTree():
             # passo
             t = (ub - w) / (np.linalg.norm(g) ** 2)
             self.pi = self.bestPi
+            last_w = w
             while L > self.minL:
                 ite += 1
                 self.pi = self.pi + L * t * g
@@ -160,8 +163,9 @@ class OneTree():
                     np.copyto(self.bestPi, self.pi)
                     maxW = w
                     break
-                else:
+                elif w < last_w:
                     L /= self.LAMBDA
+                last_w = w
             if self.trace:
                 print("%-6d UBgap:%7.2lf%% \t|g|:%.2lf  \tL:%.9lf" % (ite, 100 * maxW / ub, np.linalg.norm(g), L))
 
@@ -266,22 +270,23 @@ class OneTree():
         mat = self.mat
         matb = self.matb
         ub, path = tsp.NearestNeighbor(mat)
+        path, ub = tsp.VND(path, mat)
         self.subgradient(ub)
         edges = set(self.oneT.edges)
         if k == 0:
             return edges
         alternativas = set()
-        for e in edges:
+        for i, e in enumerate(edges):
             np.copyto(matb, mat)
             pivot = e
+            matb[pivot] = matb[pivot[::-1]] = np.inf
             for j in range(k):
-                matb[pivot] = matb[pivot[::-1]] = np.inf
-                ub, path = tsp.NearestNeighbor(matb)
-                self.subgradient(ub)
+                print(f"edge: {i+1}/{len(edges)} k:{j+1}/{k}")
+                self.subgradient(ub, self.bestPi)
                 novos = set(self.oneT.edges) - edges
                 for n in novos:
                     alternativas.add(n)
-                pivot = list(novos)[0]
+                    matb[n] = matb[n[::-1]] = np.inf
         return edges.union(alternativas)
 
 # if __name__ == "__main__":

@@ -8,7 +8,6 @@ import os
 from matplotlib import pyplot as plt
 from scipy.spatial import Delaunay
 
-from one_tree import tsp
 from one_tree.oneTree import OneTree
 
 INSTANCES_PATH = '../../instances'
@@ -165,13 +164,14 @@ def one_tree(graphs: dict, k: int):
 
     for i, (name, G) in enumerate(graphs.items()):
         progress(i, len(graphs), f'one_tree k= {k}', name)
-        ot = OneTree(G, trace=False)
+        ot = OneTree(G, minL=1e-3, LAMBDA=1.5, iniL=2, trace=False)
         edges = ot.oneTree_alternative(k)
         d = {'instance': name,
              'method': 'on_tree',
              'parameter': k,
              'edges': edges}
         lista.append(d)
+        # break
     print()
     return lista
 
@@ -267,27 +267,28 @@ if __name__ == "__main__":
 
     opt = read_opt_dir(os.path.join(INSTANCES_PATH, 'tsp_opt'))
     df = pd.DataFrame(opt)
-    df.to_csv('edges_table.csv', index=None)
-
+    # df.to_csv('edges_table.csv', index=None)
+    #
     instance_path = os.path.join(INSTANCES_PATH, 'tsp_data')
     graphs = read_graphs(instance_path)
 
-    delaunay = delaunay(graphs)
-    df = df.append(delaunay)
-    df.to_csv('edges_table.csv', index=None)
+    # delaunay = delaunay(graphs)
+    # df = df.append(delaunay)
+    # df.to_csv('edges_table.csv', index=None)
 
-    for k in range(3, 6):
-        nearest = nearest_neigh(graphs, k)
-        df = df.append(nearest)
-        df.to_csv('edges_table.csv', index=None)
+    # for k in range(3, 6):
+    #     nearest = nearest_neigh(graphs, k)
+    #     df = df.append(nearest)
+    #     df.to_csv('edges_table.csv', index=None)
 
-    for k in range(0, 2):
+    for k in range(2, 4):
         one_t = one_tree(graphs, k)
         df = df.append(one_t)
         df.to_csv('edges_table.csv', index=None)
+        # break
 
     # só pra teste
     # plot(graph[opt[0]['instance']],edges=opt[0]['edges'])
     # plot(graph[delaunay[0]['instance']], edges=delaunay[0]['edges'])
     # plot(graph[nearest[0]['instance']], edges=nearest[0]['edges'])
-    plot(graphs[one_t[0]['instance']], edges=one_t[0]['edges'])
+    # plot(graphs[one_t[0]['instance']], edges=one_t[0]['edges'])
