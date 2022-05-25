@@ -4,7 +4,7 @@ import networkx as nx
 from scipy.spatial.distance import pdist
 from scipy.spatial.distance import squareform
 import random as rd
-from assignment import assigment
+from one_tree.assignment import assignment
 
 
 def randomGraph(n, W=1000, H=1000):

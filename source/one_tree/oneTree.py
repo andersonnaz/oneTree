@@ -13,12 +13,14 @@ from scipy.spatial.distance import squareform
 
 from scipy.optimize import linear_sum_assignment as ap
 
-from assignment import assigment
+from one_tree.assignment import assignment
+
+
 
 import numpy as np
 import random as rd
 
-import tsp
+import one_tree.tsp
 
 
 class OneTree():
@@ -68,7 +70,7 @@ class OneTree():
         return cost
 
     def subgradient2(self, ub):
-        dcost, x, v, u = assigment(self.matb)
+        dcost, x, v, u = assignment(self.matb)
         for i in range(self.N):
             self.pi[i] = -0.5 * (v[i] + u[i])
 
@@ -119,6 +121,8 @@ class OneTree():
         self.oneTree()
         return maxW, is_ham
 
+
+
     def subgradient(self, ub, ini_pi=None):
         if ini_pi is None:
             dcost, x, v, u = assigment(self.matb)
@@ -149,7 +153,8 @@ class OneTree():
             g = d - 2
             # passo
             t = (ub - w) / (np.linalg.norm(g) ** 2)
-            self.pi = self.bestPi
+            # self.pi = self.bestPi
+            np.copyto(self.pi, self.bestPi)
             last_w = w
             while L > self.minL:
                 ite += 1
@@ -281,7 +286,7 @@ class OneTree():
             pivot = e
             matb[pivot] = matb[pivot[::-1]] = np.inf
             for j in range(k):
-                print(f"edge: {i+1}/{len(edges)} k:{j+1}/{k}")
+                print(f"edge: {i + 1}/{len(edges)} k:{j + 1}/{k}")
                 self.subgradient(ub, self.bestPi)
                 novos = set(self.oneT.edges) - edges
                 for n in novos:

@@ -4,6 +4,7 @@ import pandas as pd
 import tsplib95 as tsplib
 import numpy as np
 import os
+from ast import literal_eval
 
 from matplotlib import pyplot as plt
 from scipy.spatial import Delaunay
@@ -99,7 +100,7 @@ def read_graphs(path_dir: str):
     return g
 
 
-def delaunay(path_dir: str):
+def delaunay(graphs: dict):
     """
     Ler todos  arquivo de instancias da tsplib no diretório
     :param graphs: dicionário {<nome>: <graphNX>}
@@ -164,7 +165,7 @@ def one_tree(graphs: dict, k: int):
 
     for i, (name, G) in enumerate(graphs.items()):
         progress(i, len(graphs), f'one_tree k= {k}', name)
-        ot = OneTree(G, minL=1e-3, LAMBDA=1.5, iniL=2, trace=False)
+        ot = OneTree(G, minL=1e-3, LAMBDA=2, iniL=2, trace=True)
         edges = ot.oneTree_alternative(k)
         d = {'instance': name,
              'method': 'on_tree',
@@ -263,23 +264,22 @@ def plot(graph, routes=None, edges=None, clear_edges=True, stop=True, sleep_time
 #     intersect = set(numerador) & set(denominador)
 #     return ((len(intersect) * 100) / len(denominador))
 
-if __name__ == "__main__":
-
+def generateTables():
     opt = read_opt_dir(os.path.join(INSTANCES_PATH, 'tsp_opt'))
     df = pd.DataFrame(opt)
-    # df.to_csv('edges_table.csv', index=None)
+    df.to_csv('edges_table.csv', index=None)
     #
     instance_path = os.path.join(INSTANCES_PATH, 'tsp_data')
     graphs = read_graphs(instance_path)
 
-    # delaunay = delaunay(graphs)
-    # df = df.append(delaunay)
-    # df.to_csv('edges_table.csv', index=None)
+    delau = delaunay(graphs)
+    df = df.append(delau)
+    df.to_csv('edges_table.csv', index=None)
 
-    # for k in range(3, 6):
-    #     nearest = nearest_neigh(graphs, k)
-    #     df = df.append(nearest)
-    #     df.to_csv('edges_table.csv', index=None)
+    for k in range(3, 6):
+        nearest = nearest_neigh(graphs, k)
+        df = df.append(nearest)
+        df.to_csv('edges_table.csv', index=None)
 
     for k in range(2, 4):
         one_t = one_tree(graphs, k)
@@ -292,3 +292,40 @@ if __name__ == "__main__":
     # plot(graph[delaunay[0]['instance']], edges=delaunay[0]['edges'])
     # plot(graph[nearest[0]['instance']], edges=nearest[0]['edges'])
     # plot(graphs[one_t[0]['instance']], edges=one_t[0]['edges'])
+
+
+def percent_overlap(a: set, b: set):
+    return float(len(a.intersection(b))) / len(a.union(b))
+
+def percent_cover(a: set, b: set):
+    return float(len(a.intersection(b))) / len(b)
+
+
+if __name__ == "__main__":
+    # generateTables()
+
+    all = pd.read_csv('./source/one_tree/edges_table_bak.csv', converters={'edges': literal_eval})
+    opt = all[all.method == 'opt']
+    opt = opt.drop(['method', 'parameter'], axis=1)
+    opt.set_index('instance', inplace=True)
+
+    dela = all[all.method == 'delaunay']
+    dela = dela.drop(['method', 'parameter'], axis=1)
+    dela.set_index('instance', inplace=True)
+
+    sub = all[all.method != 'opt'].fillna(0)
+    sub['opt_edges'] = sub.instance.map(opt.edges)
+
+
+    sub['overlap'] = sub[['edges', 'opt_edges']].apply(lambda x: percent_overlap(x.edges, x.opt_edges), axis=1)
+    sub['cover'] = sub[['edges', 'opt_edges']].apply(lambda x: percent_cover(x.edges, x.opt_edges), axis=1)
+
+    sub[['instance','method','parameter','overlap','cover']]\
+        .groupby(['method', 'parameter'])\
+        .agg({'overlap': ['min', 'mean','max'],'cover': ['min', 'mean','max']})
+
+    # df_del = df_all[df_all.method == 'delaunay']
+    # df_nea = df_all[df_all.method == 'nearest']
+    # df_ont = df_all[df_all.method == 'on_tree']
+
+    pass

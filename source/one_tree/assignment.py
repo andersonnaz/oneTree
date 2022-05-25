@@ -1,11 +1,10 @@
 import numpy as np
-# from numba import jit
-# @jit(nopython=True)
-def assigment(C):
+
+def assignment(c: np.matrix):
     # assert isinstance(C, np.matrix), "use np.matrix"
-    n = len(C)
+    n = len(c)
     # Zij = Cij - ui - vj
-    z = np.matrix(C)
+    z = np.matrix(c)
     u = np.zeros(n)
     v = np.zeros(n)
     # dual cost
@@ -42,7 +41,6 @@ def assigment(C):
         while len(zeros) > 0:
 
             i, j = min(zeros, key=lambda a: min(zeroR[a[0]], zeroC[a[1]]))
-
 
             if zeroR[i] >= zeroC[j]:
                 flagR[i] = True
@@ -90,8 +88,7 @@ def assigment(C):
 
     return dcost, x, v, u
 
-
-import numpy as np
+# import numpy as np
 
 # C = np.matrix([[4, 2, 5, 7], [8, 3, 10, 8], [12, 5, 4, 5], [6, 3, 7, 14]], dtype=float)
 # C = np.matrix([[978.,351.,259.,781.,106.,966.,257.,681.,713.,156.,756.,302.,939.,149., 623.],
