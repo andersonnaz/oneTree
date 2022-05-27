@@ -295,16 +295,20 @@ def generateTables():
 
 
 def percent_overlap(a: set, b: set):
+    # a = {1,2,3,4,5}  b = {1,2,8}
+    # |(a ^ b)|  / |(a u b)| = 2 / 6
     return float(len(a.intersection(b))) / len(a.union(b))
 
 def percent_cover(a: set, b: set):
+    # a = {1,2,3,4,5}  b = {1,2,8}
+    # |(a ^ b)|  / |b| = 2 / 3
     return float(len(a.intersection(b))) / len(b)
 
 
 if __name__ == "__main__":
     # generateTables()
 
-    all = pd.read_csv('./source/one_tree/edges_table_bak.csv', converters={'edges': literal_eval})
+    all = pd.read_csv('./edges_table.csv', converters={'edges': literal_eval})
     opt = all[all.method == 'opt']
     opt = opt.drop(['method', 'parameter'], axis=1)
     opt.set_index('instance', inplace=True)
@@ -320,9 +324,13 @@ if __name__ == "__main__":
     sub['overlap'] = sub[['edges', 'opt_edges']].apply(lambda x: percent_overlap(x.edges, x.opt_edges), axis=1)
     sub['cover'] = sub[['edges', 'opt_edges']].apply(lambda x: percent_cover(x.edges, x.opt_edges), axis=1)
 
-    sub[['instance','method','parameter','overlap','cover']]\
+    print(np.round(sub[['instance','method','parameter','overlap','cover']]\
         .groupby(['method', 'parameter'])\
-        .agg({'overlap': ['min', 'mean','max'],'cover': ['min', 'mean','max']})
+        .agg({'overlap': ['min', 'mean','max'],'cover': ['min', 'mean','max']}),2).to_latex())
+
+    print(np.round(sub[['instance', 'method', 'parameter', 'overlap', 'cover']] \
+        .groupby(['instance']) \
+        .agg({'overlap': ['min', 'mean', 'max'], 'cover': ['min', 'mean', 'max']}),2).to_latex())
 
     # df_del = df_all[df_all.method == 'delaunay']
     # df_nea = df_all[df_all.method == 'nearest']
