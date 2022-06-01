@@ -320,6 +320,13 @@ if __name__ == "__main__":
     sub = all[all.method != 'opt'].fillna(0)
     sub['opt_edges'] = sub.instance.map(opt.edges)
 
+    merge = sub.copy()
+    merge = merge[merge.method != 'delaunay']
+    merge['method'] += '_dela'
+    merge['edges'] = merge[['instance', 'edges']].apply(lambda x: dela.loc[x.instance].edges.union(x.edges), axis=1)
+
+
+    sub = pd.concat([sub, merge])
 
     sub['overlap'] = sub[['edges', 'opt_edges']].apply(lambda x: percent_overlap(x.edges, x.opt_edges), axis=1)
     sub['cover'] = sub[['edges', 'opt_edges']].apply(lambda x: percent_cover(x.edges, x.opt_edges), axis=1)
