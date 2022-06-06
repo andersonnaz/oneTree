@@ -143,6 +143,7 @@ class OneTree():
             if np.all(d == 2):
                 if self.trace:
                     print("Ciclo Hamiltoniano encontrado.")
+                    print("Ciclo Hamiltoniano encontrado.")
                 is_ham = True
                 break
             if ub + 1e-6 < maxW:

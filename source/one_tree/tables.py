@@ -299,16 +299,33 @@ def percent_overlap(a: set, b: set):
     # |(a ^ b)|  / |(a u b)| = 2 / 6
     return float(len(a.intersection(b))) / len(a.union(b))
 
+
 def percent_cover(a: set, b: set):
     # a = {1,2,3,4,5}  b = {1,2,8}
     # |(a ^ b)|  / |b| = 2 / 3
     return float(len(a.intersection(b))) / len(b)
 
 
+def plot_to_file(instance, method, param, edges):
+    print(instance)
+    G = tsplib.load(os.path.join(INSTANCES_PATH, 'tsp_data', f'{instance}.tsp')).get_graph(True)
+    G.clear_edges()
+    G.add_edges_from(list(edges))
+    nx.draw_networkx(G, G.nodes.data('coord'), with_labels=False, node_size=20, font_size=8)
+    if np.isnan(param):
+        param = ''
+    plt.savefig(f'../../plots/{instance}_{method}_{param}.pdf', format='pdf', dpi=1200)
+    plt.clf()
+    plt.close()
+
+
 if __name__ == "__main__":
     # generateTables()
 
     all = pd.read_csv('./edges_table.csv', converters={'edges': literal_eval})
+    for index, row in all.iterrows():
+        plot_to_file(row['instance'], row['method'], row['parameter'], row['edges'])
+
     opt = all[all.method == 'opt']
     opt = opt.drop(['method', 'parameter'], axis=1)
     opt.set_index('instance', inplace=True)
@@ -325,19 +342,21 @@ if __name__ == "__main__":
     merge['method'] += '_dela'
     merge['edges'] = merge[['instance', 'edges']].apply(lambda x: dela.loc[x.instance].edges.union(x.edges), axis=1)
 
+    for index, row in merge.iterrows():
+        plot_to_file(row['instance'], row['method'], row['parameter'], row['edges'])
 
     sub = pd.concat([sub, merge])
 
     sub['overlap'] = sub[['edges', 'opt_edges']].apply(lambda x: percent_overlap(x.edges, x.opt_edges), axis=1)
     sub['cover'] = sub[['edges', 'opt_edges']].apply(lambda x: percent_cover(x.edges, x.opt_edges), axis=1)
 
-    print(np.round(sub[['instance','method','parameter','overlap','cover']]\
-        .groupby(['method', 'parameter'])\
-        .agg({'overlap': ['min', 'mean','max'],'cover': ['min', 'mean','max']}),2).to_latex())
+    print(np.round(sub[['instance', 'method', 'parameter', 'overlap', 'cover']] \
+                   .groupby(['method', 'parameter']) \
+                   .agg({'overlap': ['min', 'mean', 'max'], 'cover': ['min', 'mean', 'max']}), 2).to_latex())
 
     print(np.round(sub[['instance', 'method', 'parameter', 'overlap', 'cover']] \
-        .groupby(['instance']) \
-        .agg({'overlap': ['min', 'mean', 'max'], 'cover': ['min', 'mean', 'max']}),2).to_latex())
+                   .groupby(['instance']) \
+                   .agg({'overlap': ['min', 'mean', 'max'], 'cover': ['min', 'mean', 'max']}), 2).to_latex())
 
     # df_del = df_all[df_all.method == 'delaunay']
     # df_nea = df_all[df_all.method == 'nearest']
